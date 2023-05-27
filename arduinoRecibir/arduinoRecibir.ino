@@ -10,11 +10,14 @@ void setup(){
 }
 
 void loop() {
-  int x  = USART_receive();
-  if (x == 0)
-    PORTB |= (1<<PB5);
-  else
-    PORTB &= ~(1<<PB5);
+  char recibido  = USART_receive();
+  //char x = Serial.readstring();
+  String x = String(recibido);
+  Serial.println(x);
+  //if (x == 0)
+    //PORTB |= (1<<PB5);
+  //else
+    //PORTB &= ~(1<<PB5);
 }
 
 void USART_init(void) {

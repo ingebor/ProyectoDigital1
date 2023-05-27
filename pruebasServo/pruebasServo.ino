@@ -79,18 +79,6 @@ void loop() {
     servo1.write(pos1);
   }
 
-
-  //if (adcValue > 512){
-    //OCR1A = OCR1A +10;
-    //OCR1B = OCR1B -10;
-  //}
-  //else if (adcValue < 512){
-    //OCR1A = OCR1A -10;
-    //OCR1B = OCR1B +10;
-  //}
-  //Serial.println(adcValue);
-  //Serial.println(OCR1A);
-  //Serial.println(OCR1B);
   delay(200);
 
 }
