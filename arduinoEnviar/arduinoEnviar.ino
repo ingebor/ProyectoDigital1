@@ -22,9 +22,10 @@ void setup() {
   ADCSRA |= (1 << ADPS2) | (1 << ADPS1) | (1 << ADPS0); 
 
   ADCSRA |= (1 << ADEN);    // Habilitar el ADC
-  //DDRC = 0;
+
+  DDRC = 0;
   DDRD |= (1 << PD1); // TXD (pin 1) como salida
-  DDRD &= ~(1 << PD0); // RXD (pin 0) como entrada
+  //DDRD &= ~(1 << PD0); // RXD (pin 0) como entrada
   // Configurar velocidad de transmisión a 9600 baudios
   UBRR0H = 0;
   UBRR0L = 103;
