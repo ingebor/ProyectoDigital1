@@ -1,3 +1,9 @@
+#define F_CPU 8000000UL // Definir la frecuencia del MCU
+#include <avr/io.h>
+#include <util/delay.h>
+#define BAUDRATE 9600
+#define BAUD_PRESCALLER (((F_CPU / (BAUDRATE * 16UL))) - 1)
+
 #include <Servo.h>
 Servo servo1;
 Servo servo2;
@@ -8,8 +14,6 @@ void setup() {
   servo1.attach(6); //Servo en el pin 6
   servo2.attach(5);
   servo1.write(50);
-  //SERVO BASE DEBE INICIAR EN 100
-  //SERVO APUNTAR DEBE INICIAR EN 0
   
   //***********************CONFIGURACIONES ADC*********************************
   ADMUX = 0;              //canal 0 = PC0 = A0
@@ -48,17 +52,10 @@ void setup() {
   PCIFR |= (1 << PCIF2); // Limpiar bandera de interrupción en el puerto D, ponemos en 1 para limpiar
   PCICR |= (1 << PCIE2); //habilitar el grupo de interrupciones del puerto D
   PCMSK2 |= (1 << PCINT18);  // Seleccionar el pin a monitorear en el registro PCMSK2, Bit 18 corresponde a PD2
-  PCMSK2 |= (1 << PCINT19);  // Seleccionar el pin a monitorear en el registro PCMSK2, Bit 18 corresponde a PD2
-  PCMSK2 |= (1 << PCINT20);  // Seleccionar el pin a monitorear en el registro PCMSK2, Bit 18 corresponde a PD2
+  PCMSK2 |= (1 << PCINT19);  // Seleccionar el pin a monitorear en el registro PCMSK2, Bit 19 corresponde a PD3
+  PCMSK2 |= (1 << PCINT20);  // Seleccionar el pin a monitorear en el registro PCMSK2, Bit 20 corresponde a PD4
 
-  //?no se si debo hacer esto
-  /**
-  PCIFR |= (1 << PCIF3); // Limpiar bandera de interrupción en el puerto D, ponemos en 1 para limpiar
-  PCICR |= (1 << PCIE3); //habilitar el grupo de interrupciones del puerto D
-
-  PCIFR |= (1 << PCIF4); // Limpiar bandera de interrupción en el puerto D, ponemos en 1 para limpiar
-  PCICR |= (1 << PCIE4); //habilitar el grupo de interrupciones del puerto D**/ 
-  //al parecer no
+  //tiamo
 //******************************************************************************
 
 //********************CONFIGURACIONES INTERRUPCIONES servo****************************
@@ -90,8 +87,6 @@ void setup() {
   TIMSK0 |= (1 << OCIE0A);
   sei(); // allow interrupts
 //*********************************************************************************
-
-
   Serial.begin(9600);
   Serial.println("setup realizado");
   pinMode(motorPin, OUTPUT);
@@ -99,13 +94,35 @@ void setup() {
   pinMode(6, OUTPUT);
   pinMode(5, OUTPUT);
 
-
+//*********************************************************************************
+//USART
+  USART_init();
+  DDRB =0b00010000;
+  
 }
 int pos1 = 0;
 int pos2 = 0;
 int bandera = 0;
-void loop() {
 
+void loop() {
+char x= USART_receive();
+if (x == 0)
+  PORTB |= (1<<PB5);
+else  
+  PORTB &= ~(1<<PB5);
+  }
+
+void USART_init(void) {
+  UBRR0H = (uint8_t)(BAUD_PRESCALLER >> 8);
+  UBRR0L = (uint8_t)(BAUD_PRESCALLER);
+  UCSR0B = (1 << RXEN0) | (1 << TXEN0);
+  UCSR0C = (1 << UCSZ01) | (1 << UCSZ00);
+}
+
+unsigned char USART_receive(void) {
+  // Esperar a recibir datos
+  while (!(UCSR0A & (1 << RXC0)));
+  return UDR0; // Devolver el dato recibido
 }
 
 int count0 = 0;
@@ -192,35 +209,3 @@ ISR(PCINT2_vect) {
   PCIFR |= (1 << PCIF2); // Limpiar bandera de interrupción en el puerto D, se apaga automatico en la interrupcion
   sei(); // Habilitar interrupciones globales
 }
-/**
-ISR(PCINT2_vect) {
-  cli(); 
-  // Verificar si el pin 3 del puerto D cambió a HIGH
-   	if ( PIND & (1 << PIND3) ) {       
-      //Código cuando PORTD2  pasa a HIGH
-      Serial.println ("PD3 PRESIONADO");
-      //digitalWrite(motorPin, HIGH);
-    } else {
-      //Código cuando PORTD2  pasa a LOW
-      //Serial.println ("PD2 LOW");
-      //digitalWrite(motorPin, LOW);
-    }
-  PCIFR |= (1 << PCIF2); // Limpiar bandera de interrupción en el puerto D, se apaga automatico en la interrupcion
-  sei(); // Habilitar interrupciones globales
-}
-
-ISR(PCINT4_vect) {
-  cli(); 
-  // Verificar si el pin 4 del puerto D cambió a HIGH
-   	if ( PIND & (1 << PIND4) ) {       
-      //Código cuando PORTD2  pasa a HIGH
-      Serial.println ("PD4 PRESIONADO");
-      //digitalWrite(motorPin, HIGH);
-    } else {
-      //Código cuando PORTD2  pasa a LOW
-      //Serial.println ("PD2 LOW");
-      //digitalWrite(motorPin, LOW);
-    }
-  PCIFR |= (1 << PCIF2); // Limpiar bandera de interrupción en el puerto D, se apaga automatico en la interrupcion
-  sei(); // Habilitar interrupciones globales
-}**/
