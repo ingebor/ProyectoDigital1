@@ -1,15 +1,20 @@
 #include <Servo.h>
 Servo servo1;
-//int motorPin = 9;
+Servo servo2;
+int motorPin = 11;
+int motorPin2 =10;
 void setup() {
 
-  servo1.attach(6); //Servo en el pin 9
-  servo1.write(100);
+  servo1.attach(6); //Servo en el pin 6
+  servo2.attach(5);
+  servo1.write(50);
   //SERVO BASE DEBE INICIAR EN 100
   //SERVO APUNTAR DEBE INICIAR EN 0
   
   //***********************CONFIGURACIONES ADC*********************************
-  ADMUX = 3;              //canal 0 = PC0 = A0
+  ADMUX = 0;              //canal 0 = PC0 = A0
+  // Configurar el pin como entrada
+  DDRC &= ~(1 << PC0);
   // Configurar el pin como entrada
   DDRC &= ~(1 << PC3);
  // DDRC &= ~(1 << PC1);
@@ -30,7 +35,7 @@ void setup() {
 
   //**********************CONFIGURACIONES BOTON***********************
    // Configurar PD2 como entrada con pull-down
-  DDRD &= (1 << DDD2);
+  DDRD &= ~(1 << DDD2);
   PORTD |= (1 << PORTD2);
 // Configurar PD3 como entrada con pull-down
   DDRD &= (1 << DDD3);
@@ -43,6 +48,8 @@ void setup() {
   PCIFR |= (1 << PCIF2); // Limpiar bandera de interrupción en el puerto D, ponemos en 1 para limpiar
   PCICR |= (1 << PCIE2); //habilitar el grupo de interrupciones del puerto D
   PCMSK2 |= (1 << PCINT18);  // Seleccionar el pin a monitorear en el registro PCMSK2, Bit 18 corresponde a PD2
+  PCMSK2 |= (1 << PCINT19);  // Seleccionar el pin a monitorear en el registro PCMSK2, Bit 18 corresponde a PD2
+  PCMSK2 |= (1 << PCINT20);  // Seleccionar el pin a monitorear en el registro PCMSK2, Bit 18 corresponde a PD2
 
   //?no se si debo hacer esto
   /**
@@ -87,11 +94,16 @@ void setup() {
 
   Serial.begin(9600);
   Serial.println("setup realizado");
-  //pinMode(motorPin, OUTPUT);
+  pinMode(motorPin, OUTPUT);
+  pinMode(motorPin2, OUTPUT);
+  pinMode(6, OUTPUT);
+  pinMode(5, OUTPUT);
 
 
 }
 int pos1 = 0;
+int pos2 = 0;
+int bandera = 0;
 void loop() {
 
 }
@@ -105,17 +117,33 @@ ISR(TIMER0_COMPA_vect){ //1000HZ
       ADCSRA |= (1 << ADSC);        // Iniciar la conversión
       while (ADCSRA & (1 << ADSC)); // Esperar a que la conversión termine
       uint16_t adcValue = ADC;      // obtener los 10 bits de la conversión ADCH:ADCL
-      //Serial.println(adcValue);
+      Serial.println(adcValue);
       count0 = 0;
-      if(adcValue > 700){
-        pos1 = pos1 +10;
-        servo1.write(pos1);
-        //Serial.println("***************************");
-      }
-      else if (adcValue < 400){
-        //Serial.println("------------------------------");
-        pos1 = pos1 -10;
-        servo1.write(pos1);
+      if (bandera == 1){
+        Serial.println("Entra en admux 0");
+          if(adcValue > 700){
+          pos1 = pos1 +10;
+          servo1.write(pos1);
+          Serial.println("***************************");
+        }
+        else if (adcValue < 400){
+          pos1 = pos1 -10;
+          servo1.write(pos1);
+          Serial.println("------------------------------");
+        }
+        }
+      if (bandera == 0){
+        Serial.println("Entra en admux 3");
+        if(adcValue > 700){
+          pos2 = pos2 +10;
+          servo2.write(pos2);
+          //Serial.println("***************************");
+        }
+        else if (adcValue < 400){
+          pos2 = pos2 -10;
+          servo2.write(pos2);
+          //Serial.println("------------------------------");
+        }
       }
 
   delay(200);
@@ -127,18 +155,45 @@ ISR(PCINT2_vect) {
   // Verificar si el pin 2 del puerto D cambió a HIGH
    	if ( PIND & (1 << PIND2) ) {       
       //Código cuando PORTD2  pasa a HIGH
+      digitalWrite(motorPin, LOW);
+      digitalWrite(motorPin2, LOW);
       Serial.println ("PD2 HIGH");
-      //digitalWrite(motorPin, HIGH);
-    } else {
+    } else{
       //Código cuando PORTD2  pasa a LOW
+      digitalWrite(motorPin, HIGH);
+      digitalWrite(motorPin2, HIGH);
       Serial.println ("PD2 LOW");
-      //digitalWrite(motorPin, LOW);
+    }
+
+    if ( (PIND & (1 << PIND3)) == 0) {       
+      //Código cuando PORTD2  pasa a HIGH
+      Serial.println ("PD3 PRESIONADO");
+      ADMUX = 3;
+      //Vref interno = 01
+      ADMUX &= ~(1<<REFS1);
+      ADMUX |= (1<<REFS0);
+
+      ADMUX &= ~(1<<ADLAR);     //ajuste a la derecha de la salida de 10 bits
+      //digitalWrite(motorPin, HIGH);
+      bandera = 0;
+    }
+    if ( (PIND & (1 << PIND4)) == 0 ) {       
+      //Código cuando PORTD2  pasa a HIGH
+      Serial.println ("PD4 PRESIONADO");
+      ADMUX = 0;
+      //Vref interno = 01
+      ADMUX &= ~(1<<REFS1);
+      ADMUX |= (1<<REFS0);
+
+      ADMUX &= ~(1<<ADLAR);     //ajuste a la derecha de la salida de 10 bits
+      //digitalWrite(motorPin, HIGH);
+      bandera = 1;
     }
   PCIFR |= (1 << PCIF2); // Limpiar bandera de interrupción en el puerto D, se apaga automatico en la interrupcion
   sei(); // Habilitar interrupciones globales
 }
-
-ISR(PCINT3_vect) {
+/**
+ISR(PCINT2_vect) {
   cli(); 
   // Verificar si el pin 3 del puerto D cambió a HIGH
    	if ( PIND & (1 << PIND3) ) {       
@@ -168,4 +223,4 @@ ISR(PCINT4_vect) {
     }
   PCIFR |= (1 << PCIF2); // Limpiar bandera de interrupción en el puerto D, se apaga automatico en la interrupcion
   sei(); // Habilitar interrupciones globales
-}
+}**/
