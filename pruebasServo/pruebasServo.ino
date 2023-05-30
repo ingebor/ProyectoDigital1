@@ -1,14 +1,21 @@
+/**
 #define F_CPU 8000000UL // Definir la frecuencia del MCU
 #include <avr/io.h>
 #include <util/delay.h>
 #define BAUDRATE 9600
 #define BAUD_PRESCALLER (((F_CPU / (BAUDRATE * 16UL))) - 1)
+**/
 
+#include <LiquidCrystal.h>
 #include <Servo.h>
+
 Servo servo1;
 Servo servo2;
 int motorPin = 11;
 int motorPin2 =10;
+
+LiquidCrystal lcd(7,8,A0,A1,A2,A3); //Conexion de LCD a arduino
+
 void setup() {
 
   servo1.attach(6); //Servo en el pin 6
@@ -16,11 +23,11 @@ void setup() {
   servo1.write(50);
   
   //***********************CONFIGURACIONES ADC*********************************
-  ADMUX = 0;              //canal 0 = PC0 = A0
+  ADMUX = 4;              //canal 0 = PC0 = A0
   // Configurar el pin como entrada
-  DDRC &= ~(1 << PC0);
+  DDRC &= ~(1 << PC4);
   // Configurar el pin como entrada
-  DDRC &= ~(1 << PC3);
+  DDRC &= ~(1 << PC5);
  // DDRC &= ~(1 << PC1);
   //Vref interno = 01
   ADMUX &= ~(1<<REFS1);
@@ -93,11 +100,13 @@ void setup() {
   pinMode(motorPin2, OUTPUT);
   pinMode(6, OUTPUT);
   pinMode(5, OUTPUT);
+  lcd.begin(16,2); //LCD de 16x2
+  lcd.println("Bienvenido");
 
 //*********************************************************************************
 //USART
-  USART_init();
-  DDRB =0b00010000;
+  //USART_init();
+  //DDRB =0b00010000;
   
 }
 int pos1 = 0;
@@ -105,13 +114,17 @@ int pos2 = 0;
 int bandera = 0;
 
 void loop() {
+
+/**
 char x= USART_receive();
 if (x == 0)
   PORTB |= (1<<PB5);
 else  
   PORTB &= ~(1<<PB5);
+  **/
   }
-
+  
+/**
 void USART_init(void) {
   UBRR0H = (uint8_t)(BAUD_PRESCALLER >> 8);
   UBRR0L = (uint8_t)(BAUD_PRESCALLER);
@@ -124,6 +137,7 @@ unsigned char USART_receive(void) {
   while (!(UCSR0A & (1 << RXC0)));
   return UDR0; // Devolver el dato recibido
 }
+**/
 
 int count0 = 0;
 ISR(TIMER0_COMPA_vect){ //1000HZ
@@ -141,26 +155,28 @@ ISR(TIMER0_COMPA_vect){ //1000HZ
           if(adcValue > 700){
           pos1 = pos1 +10;
           servo1.write(pos1);
-          Serial.println("***************************");
+          Serial.println("***********************");
         }
         else if (adcValue < 400){
           pos1 = pos1 -10;
           servo1.write(pos1);
-          Serial.println("------------------------------");
+          Serial.println("-----------------------");
         }
+        lcd.setCursor(1,1);
+        lcd.println("Girando...");
         }
       if (bandera == 0){
         Serial.println("Entra en admux 3");
         if(adcValue > 700){
           pos2 = pos2 +10;
           servo2.write(pos2);
-          //Serial.println("***************************");
         }
         else if (adcValue < 400){
           pos2 = pos2 -10;
           servo2.write(pos2);
-          //Serial.println("------------------------------");
         }
+        lcd.setCursor(1,1);
+        lcd.println("Apuntando...");
       }
 
   delay(200);
@@ -174,18 +190,28 @@ ISR(PCINT2_vect) {
       //Código cuando PORTD2  pasa a HIGH
       digitalWrite(motorPin, LOW);
       digitalWrite(motorPin2, LOW);
-      Serial.println ("PD2 HIGH");
+      Serial.println ("PD2 HIGH"); 
+      lcd.setCursor(0,0);
+      lcd.println("             ");
+      lcd.setCursor(1,1);
+      lcd.println("             ");     
     } else{
       //Código cuando PORTD2  pasa a LOW
       digitalWrite(motorPin, HIGH);
       digitalWrite(motorPin2, HIGH);
       Serial.println ("PD2 LOW");
+      lcd.setCursor(0,0);
+      lcd.println("DISPARANDO");
     }
 
     if ( (PIND & (1 << PIND3)) == 0) {       
       //Código cuando PORTD2  pasa a HIGH
       Serial.println ("PD3 PRESIONADO");
-      ADMUX = 3;
+      lcd.setCursor(0,0);
+      lcd.println("Apunta");
+      lcd.setCursor(1,1);
+      lcd.println("         ");
+      ADMUX =4;
       //Vref interno = 01
       ADMUX &= ~(1<<REFS1);
       ADMUX |= (1<<REFS0);
@@ -197,7 +223,11 @@ ISR(PCINT2_vect) {
     if ( (PIND & (1 << PIND4)) == 0 ) {       
       //Código cuando PORTD2  pasa a HIGH
       Serial.println ("PD4 PRESIONADO");
-      ADMUX = 0;
+      lcd.setCursor(0,0);
+      lcd.println("Gira:");
+      lcd.setCursor(1,1);
+      lcd.println("              ");
+      ADMUX = 5;
       //Vref interno = 01
       ADMUX &= ~(1<<REFS1);
       ADMUX |= (1<<REFS0);
