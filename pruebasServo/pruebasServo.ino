@@ -211,7 +211,7 @@ ISR(PCINT2_vect) {
       lcd.println("Apunta");
       lcd.setCursor(1,1);
       lcd.println("         ");
-      ADMUX =4;
+      ADMUX =5;
       //Vref interno = 01
       ADMUX &= ~(1<<REFS1);
       ADMUX |= (1<<REFS0);
@@ -227,7 +227,7 @@ ISR(PCINT2_vect) {
       lcd.println("Gira:");
       lcd.setCursor(1,1);
       lcd.println("              ");
-      ADMUX = 5;
+      ADMUX = 4;
       //Vref interno = 01
       ADMUX &= ~(1<<REFS1);
       ADMUX |= (1<<REFS0);
