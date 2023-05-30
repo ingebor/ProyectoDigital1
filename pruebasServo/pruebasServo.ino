@@ -239,3 +239,30 @@ ISR(PCINT2_vect) {
   PCIFR |= (1 << PCIF2); // Limpiar bandera de interrupción en el puerto D, se apaga automatico en la interrupcion
   sei(); // Habilitar interrupciones globales
 }
+
+/**
+//Escribir en EEPROM
+void EEPROM_write(unsigned int uiAddress, unsigned char ucData){
+  //Wait for comletion of previous write
+  while(EECR &(1<<EEPE));
+  //Set up address and data registers
+  EEAR = uiAdress;
+  EEDR = ucData;
+  //Write logical one to EEMPE
+  EECR |= (1<<EEMPE);
+  //Start eeprom write by setting EEPE
+  EECR |= (1<<EEPE);
+}
+
+//Leer EEPROM
+unsigned char EEPROM_read(unsigned int uiAddress){
+  //wait for completion of previous write
+  while(EECR & (1<<EEPE));
+  //Set the address register
+  EEAR = uiAddress;
+  //Start eeprom read by writing EERE
+  EECR |= (1<<EERE);
+  //Return data from Data Register
+  return EEDR;  
+ }
+ **/
