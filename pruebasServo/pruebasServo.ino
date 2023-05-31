@@ -1,13 +1,14 @@
-/**
+
 #define F_CPU 8000000UL // Definir la frecuencia del MCU
 #include <avr/io.h>
 #include <util/delay.h>
 #define BAUDRATE 9600
 #define BAUD_PRESCALLER (((F_CPU / (BAUDRATE * 16UL))) - 1)
-**/
+
 
 #include <LiquidCrystal.h>
 #include <Servo.h>
+#define direccion_angulo 0 //Direccion en donde se almacenara angulo para la EEPROM
 
 Servo servo1;
 Servo servo2;
@@ -15,6 +16,9 @@ int motorPin = 11;
 int motorPin2 =10;
 
 LiquidCrystal lcd(7,8,A0,A1,A2,A3); //Conexion de LCD a arduino
+
+int angulos[] = {80};
+int valor_angulo = 0;
 
 void setup() {
 
@@ -53,7 +57,17 @@ void setup() {
   PORTD |= (1 << PORTD3);
 // Configurar PD4 como entrada con pull-down
   DDRD &= (1 << DDD4);
-  PORTD |= (1 << PORTD4);  
+  PORTD |= (1 << PORTD4);
+
+  // Configurar PB4 como entrada con pull-down
+  DDRB &= (1 << DDB4);
+  PORTB |= (1 << DDB4);
+
+  // Configurar PB1 como entrada con pull-down
+  DDRB &= (1 << DDB1);
+  PORTB |= (1 << DDB1);
+  
+    
 
   //configuración de la interrupción
   PCIFR |= (1 << PCIF2); // Limpiar bandera de interrupción en el puerto D, ponemos en 1 para limpiar
@@ -61,7 +75,13 @@ void setup() {
   PCMSK2 |= (1 << PCINT18);  // Seleccionar el pin a monitorear en el registro PCMSK2, Bit 18 corresponde a PD2
   PCMSK2 |= (1 << PCINT19);  // Seleccionar el pin a monitorear en el registro PCMSK2, Bit 19 corresponde a PD3
   PCMSK2 |= (1 << PCINT20);  // Seleccionar el pin a monitorear en el registro PCMSK2, Bit 20 corresponde a PD4
-
+  //PCMSK2 |= (1 << PCINT28);  // Seleccionar el pin a monitorear en el registro PCMSK2, Bit 20 corresponde a PD12
+  PCIFR |= (1 << PCIF0); // Limpiar bandera de interrupción en el puerto D, ponemos en 1 para limpiar
+  PCICR |= (1 << PCIE0); 
+  
+  PCICR |= B00010010;
+  PCMSK0 |= B00010000;
+  PCMSK0 |= B00000010;
   //tiamo
 //******************************************************************************
 
@@ -105,8 +125,8 @@ void setup() {
 
 //*********************************************************************************
 //USART
-  //USART_init();
-  //DDRB =0b00010000;
+  USART_init();
+  DDRB =0b00010000;
   
 }
 int pos1 = 0;
@@ -115,16 +135,16 @@ int bandera = 0;
 
 void loop() {
 
-/**
+
 char x= USART_receive();
 if (x == 0)
   PORTB |= (1<<PB5);
 else  
   PORTB &= ~(1<<PB5);
-  **/
+  
   }
   
-/**
+
 void USART_init(void) {
   UBRR0H = (uint8_t)(BAUD_PRESCALLER >> 8);
   UBRR0L = (uint8_t)(BAUD_PRESCALLER);
@@ -137,7 +157,7 @@ unsigned char USART_receive(void) {
   while (!(UCSR0A & (1 << RXC0)));
   return UDR0; // Devolver el dato recibido
 }
-**/
+
 
 int count0 = 0;
 ISR(TIMER0_COMPA_vect){ //1000HZ
@@ -236,23 +256,46 @@ ISR(PCINT2_vect) {
       //digitalWrite(motorPin, HIGH);
       bandera = 1;
     }
+    
   PCIFR |= (1 << PCIF2); // Limpiar bandera de interrupción en el puerto D, se apaga automatico en la interrupcion
   sei(); // Habilitar interrupciones globales
 }
 
-/**
+ISR(PCINT0_vect) {
+  cli(); 
+  if ( (PINB & (1 << PINB4)) == 0 ) {       
+      //Código cuando PORTD2  pasa a HIGH
+      Serial.println ("PD12 PRESIONADO");
+      lcd.setCursor(0,0);
+      lcd.println("EEPROM write");
+      int angulo1 = angulos[0];
+      EEPROM_write(direccion_angulo,angulo1);      
+      //servo1.write(angulo1);
+    }
+  if ((PINB & (1 << PINB1)) == 0 ){
+    Serial.println ("PD9 PRESIONADO");
+    lcd.setCursor(0,0);
+    lcd.println("EEPROM read");
+    valor_angulo = EEPROM_read(direccion_angulo);
+    servo1.write(valor_angulo); 
+
+  }
+}
+
+
 //Escribir en EEPROM
 void EEPROM_write(unsigned int uiAddress, unsigned char ucData){
   //Wait for comletion of previous write
   while(EECR &(1<<EEPE));
   //Set up address and data registers
-  EEAR = uiAdress;
+  EEAR = uiAddress;
   EEDR = ucData;
   //Write logical one to EEMPE
   EECR |= (1<<EEMPE);
   //Start eeprom write by setting EEPE
   EECR |= (1<<EEPE);
 }
+
 
 //Leer EEPROM
 unsigned char EEPROM_read(unsigned int uiAddress){
@@ -265,4 +308,4 @@ unsigned char EEPROM_read(unsigned int uiAddress){
   //Return data from Data Register
   return EEDR;  
  }
- **/
+ 
